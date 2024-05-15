@@ -2,10 +2,13 @@ package BDImagenes;
 
 import java.io.File;
 import java.io.FileInputStream;
+import java.sql.Blob;
 import java.sql.Connection;
 import java.sql.DriverManager;
 import java.sql.PreparedStatement;
+import java.sql.ResultSet;
 import java.sql.SQLException;
+import java.sql.Statement;
 import java.util.Random;
 
 public class ejercicio {
@@ -19,7 +22,9 @@ public class ejercicio {
 	public static void main(String[] args) {
 		try {
 			conex = conectar("agenda");
-			insertarDatos(conex);
+			//generaContactoPorFoto();
+			 leerBD(conex);
+
 		} catch (SQLException e) {
 			e.printStackTrace();
 		} finally {
@@ -27,7 +32,20 @@ public class ejercicio {
 		}
 	}
 
-	public static void insertarDatos(Connection conex) {
+	public static void generaContactoPorFoto() {
+		File imagenes = new File("img/");
+
+		if (imagenes.isDirectory()) {
+			File[] fotos = imagenes.listFiles();
+			for (File file : fotos) {
+				insertarDatos(file);
+			}
+		} else {
+			System.out.println("La carpeta no es un directorio");
+		}
+	}
+
+	public static void insertarDatos(File img) {
 		try {
 			conex.setAutoCommit(false);
 
@@ -35,8 +53,8 @@ public class ejercicio {
 					"INSERT INTO contacto (nombre, telefono, imagen, binarioimagen) VALUES (?, ?, ?, ?)");
 			ps.setString(1, randomNames());
 			ps.setInt(2, Integer.parseInt(randomTlf()));
-			ps.setString(3, rutaRelativaImg());
-			ps.setBlob(4, new FileInputStream(foto()));
+			ps.setString(3, img.getPath());
+			ps.setBlob(4, new FileInputStream(img));
 
 			ps.executeUpdate();
 
@@ -46,6 +64,35 @@ public class ejercicio {
 			doRollback();
 			e.printStackTrace();
 		}
+	}
+
+	public static void leerBD(Connection conex) {
+
+		String query = "SELECT * FROM CONTACTO";
+
+		try {
+			Statement instruccion = (Statement) conex.createStatement();
+
+			ResultSet resultado = instruccion.executeQuery(query);
+
+			while (resultado.next()) {
+				int id = resultado.getInt("id");
+				String nombre = resultado.getString("nombre");
+				int tlf = resultado.getInt("telefono");
+				String ruta = resultado.getString("imagen");
+				Blob vinicius = resultado.getBlob("binarioimagen");
+
+				System.out.println("ID: " + id);
+				System.out.println("Nombre: " + nombre);
+				System.out.println("Teléfono: " + tlf);
+				System.out.println("Ruta: " + ruta);
+				System.out.println("Imagen: " + vinicius + "\n");
+			}
+
+		} catch (SQLException e) {
+			e.printStackTrace();
+		}
+
 	}
 
 	public static String randomNames() {
